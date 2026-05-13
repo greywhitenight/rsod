@@ -1,0 +1,84 @@
+# ==================================
+# Python 后端相关
+# ==================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# 虚拟环境
+.env
+.venv
+env/
+venv/
+ENV/
+
+# 日志文件
+*.log
+logs/
+
+# ==================================
+# AI模型与数据相关（必须过滤！）
+# ==================================
+# 模型权重文件
+*.pt
+*.pth
+*.onnx
+*.engine
+*.trt
+*.weights
+*.ckpt
+
+# 数据集
+data/
+dataset/
+datasets/
+
+# 运行结果
+runs/
+static/annotated/
+static/videos/
+static/original/
+quarantine/
+
+# ==================================
+# Vue 前端相关
+# ==================================
+node_modules/
+.DS_Store
+dist/
+dist-ssr/
+*.local
+.npmrc
+
+# 编辑器临时文件
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.iml
+*.iws
+*.ipr
+*.swp
+.sublime-*
+
+# 系统文件
+Thumbs.db
+.DS_Store
