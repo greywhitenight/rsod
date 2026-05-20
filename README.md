@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 遥感目标智能检测平台
 
 > 基于YOLO11的遥感图像目标检测系统，支持飞机、油罐、立交桥、操场等多类目标识别
@@ -461,3 +462,6 @@ Content-Type: multipart/form-data
 **项目状态**: 🚀 开发中\
 **最后更新**: 2026-05-17\
 **联系邮箱**: <your-email@example.com>
+=======
+# rsod
+>>>>>>> abb2805dc4897561b4747a7dfeb5c0347beeeba4
