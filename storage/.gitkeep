@@ -1,0 +1,6 @@
+# 此目录用于存储Docker数据卷
+#
+# 包含以下子目录：
+# - postgres/          # PostgreSQL数据库数据
+# - redis/             # Redis缓存数据
+# - minio/             # MinIO对象存储数据

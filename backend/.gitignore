@@ -1,0 +1,31 @@
+# ==================================
+# 后端特定文件
+# ==================================
+
+# Python虚拟环境
+.venv/
+venv/
+
+# Python 缓存文件
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+
+# 环境变量配置（包含敏感信息，禁止提交）
+.env
+.env.local
+.env.*.local
+
+# 静态文件目录（上传图片、检测结果）
+static/uploads/
+static/results/
+
+# 本地数据库文件
+*.db
+*.sqlite
+
+# 保持空目录结构（实际文件不提交）
+static/uploads/.gitkeep
+static/results/.gitkeep

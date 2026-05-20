@@ -1,43 +1,52 @@
 # ==================================
-# Python 后端相关
+# Python 后端
 # ==================================
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+
 build/
-develop-eggs/
 dist/
 downloads/
 eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
 *.egg
+*.egg-info/
 MANIFEST
 
 # 虚拟环境
-.env
-.venv
-env/
+backend/.venv/
 venv/
 ENV/
+env/
 
+# ==================================
+# 环境配置（敏感信息）
+# ==================================
+.env
+.env.local
+.env.*.local
+backend/.env
+
+# ==================================
+# IDE 配置
+# ==================================
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# ==================================
 # 日志文件
+# ==================================
 *.log
 logs/
 
 # ==================================
-# AI模型与数据相关（必须过滤！）
+# AI 模型（不应提交到大仓库）
 # ==================================
-# 模型权重文件
 *.pt
 *.pth
 *.onnx
@@ -46,39 +55,41 @@ logs/
 *.weights
 *.ckpt
 
-# 数据集
-data/
-dataset/
-datasets/
-
-# 运行结果
+# YOLO 训练输出目录
 runs/
-static/annotated/
-static/videos/
-static/original/
-quarantine/
+yolo_dataset/
 
 # ==================================
-# Vue 前端相关
+# 数据文件（不应提交）
+# ==================================
+# 训练好的模型（保留目录结构）
+backend/models/rsod_yolo11n/
+!backend/models/.gitkeep
+backend/models/yolo11n.pt
+
+# 原始数据集
+backend/data/
+!backend/data/.gitkeep
+
+# 静态文件目录（上传图片、检测结果）
+backend/static/uploads/
+backend/static/results/
+
+# ==================================
+# Docker 数据目录（统一存储）
+# ==================================
+storage/postgres/data/
+storage/postgres/init/
+storage/minio/data/
+storage/minio/config/
+storage/redis/data/
+!storage/.gitkeep
+
+# ==================================
+# 前端
 # ==================================
 node_modules/
-.DS_Store
-dist/
-dist-ssr/
-*.local
-.npmrc
-
-# 编辑器临时文件
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
-.idea/
-*.iml
-*.iws
-*.ipr
-*.swp
-.sublime-*
-
-# 系统文件
-Thumbs.db
-.DS_Store
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/uploads/
