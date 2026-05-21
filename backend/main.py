@@ -31,6 +31,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,                        # 允许的跨域来源
+    # allow_origins=["*"],  # 临时允许所有来源
     allow_credentials=True,                                     # 允许携带凭证
     allow_methods=["*"],                                        # 允许所有 HTTP 方法
     allow_headers=["*"],                                        # 允许所有请求头

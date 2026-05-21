@@ -6,9 +6,9 @@ export const detectSingleImage = (data) => {
     url: "/detection/single",
     method: "post",
     data,
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
+    // headers: {
+    //   "Content-Type": "multipart/form-data",
+    // },
   });
 };
 
