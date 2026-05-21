@@ -440,17 +440,19 @@ async def get_target_list():
 # =============================================================================
 
 @router.get("/files/{bucket}/{filename}", response_class=Response)
-def get_file(bucket: str, filename: str):
+def get_file(bucket: str, filename: str, download: bool = False):
     """
     MinIO 文件代理接口
 
     功能：
     - 从 MinIO 获取文件并返回给前端
     - 解决前端无法直接访问 MinIO 的问题
+    - 支持在线预览和下载两种模式
 
     参数：
         bucket: MinIO Bucket 名称
         filename: 文件名
+        download: 是否下载（默认 False，在线预览模式）
 
     返回：
         文件流
@@ -458,15 +460,28 @@ def get_file(bucket: str, filename: str):
     try:
         from app.services.minio_service import minio_service
         
+        # 验证 bucket 名称，防止路径遍历攻击
+        allowed_buckets = {"rsod-original", "rsod-results"}
+        if bucket not in allowed_buckets:
+            raise HTTPException(
+                status_code=403,
+                message="访问被拒绝",
+                detail="无效的存储桶名称"
+            )
+        
+        # 验证文件名，防止路径遍历攻击
+        if ".." in filename or "/" in filename or "\\" in filename:
+            raise HTTPException(
+                status_code=400,
+                message="请求无效",
+                detail="文件名包含非法字符"
+            )
+        
         # 从 MinIO 获取文件
         response = minio_service.client.get_object(bucket, filename)
         
         # 确定内容类型
-        content_type = "image/jpeg"
-        if filename.endswith(".png"):
-            content_type = "image/png"
-        elif filename.endswith(".jpg") or filename.endswith(".jpeg"):
-            content_type = "image/jpeg"
+        content_type = determine_content_type(filename)
         
         # 读取所有数据
         data = response.read()
@@ -475,16 +490,34 @@ def get_file(bucket: str, filename: str):
         response.close()
         response.release_conn()
         
+        # 构建响应头
+        headers = {
+            "Content-Length": str(len(data)),
+            "Cache-Control": "public, max-age=31536000",
+            "Accept-Ranges": "bytes"
+        }
+        
+        # 根据 download 参数设置 Content-Disposition
+        if download:
+            headers["Content-Disposition"] = f'attachment; filename="{filename}"; filename*=UTF-8''"{filename}"'
+        else:
+            headers["Content-Disposition"] = f'inline; filename="{filename}"'
+        
         # 返回文件流
         return Response(
             content=data,
             media_type=content_type,
-            headers={
-                "Content-Disposition": f'inline; filename="{filename}"',
-                "Content-Length": str(len(data))
-            }
+            headers=headers
         )
         
+    except HTTPException as e:
+        raise e
+    except minio_service.client.exceptions.NoSuchKey:
+        raise HTTPException(
+            status_code=404,
+            message="文件未找到",
+            detail="指定的文件不存在于存储桶中"
+        )
     except Exception as e:
         import traceback
         print(f"[文件代理错误] Bucket: {bucket}, Filename: {filename}")
@@ -492,7 +525,35 @@ def get_file(bucket: str, filename: str):
         print(f"[文件代理错误] 异常信息: {str(e)}")
         traceback.print_exc()
         raise HTTPException(
-            status_code=404,
-            message="文件未找到",
-            detail=f"{type(e).__name__}: {str(e)}"
+            status_code=500,
+            message="文件获取失败",
+            detail=f"服务器内部错误: {type(e).__name__}"
         )
+
+
+def determine_content_type(filename: str) -> str:
+    """
+    根据文件名确定内容类型
+    
+    参数：
+        filename: 文件名
+        
+    返回：
+        内容类型字符串
+    """
+    lower_name = filename.lower()
+    
+    # 图片类型
+    if lower_name.endswith(".png"):
+        return "image/png"
+    elif lower_name.endswith(".jpg") or lower_name.endswith(".jpeg"):
+        return "image/jpeg"
+    elif lower_name.endswith(".gif"):
+        return "image/gif"
+    elif lower_name.endswith(".webp"):
+        return "image/webp"
+    elif lower_name.endswith(".bmp"):
+        return "image/bmp"
+    
+    # 默认返回图片类型
+    return "image/jpeg"

@@ -154,10 +154,33 @@
             <el-icon><Monitor/></el-icon>
             详情
           </el-button>
-          <el-button size="small" @click.stop="downloadRecord(record)">
-            <el-icon><Download/></el-icon>
-            下载
-          </el-button>
+          <el-dropdown @command="(cmd) => handleDownloadCommand(cmd, record)">
+            <el-button size="small">
+              <el-icon><Download/></el-icon>
+              下载
+              <el-icon class="el-icon--right"><ArrowDown/></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="original" :disabled="!record.image_url">
+                  <el-icon><Picture/></el-icon>
+                  原始图片
+                </el-dropdown-item>
+                <el-dropdown-item command="result" :disabled="!record.result_image_url">
+                  <el-icon><Picture/></el-icon>
+                  检测结果
+                </el-dropdown-item>
+                <el-dropdown-item command="report">
+                  <el-icon><Document/></el-icon>
+                  检测报告
+                </el-dropdown-item>
+                <el-dropdown-item divided command="all">
+                  <el-icon><Download/></el-icon>
+                  全部下载
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
           <el-button
             size="small"
             type="danger"
@@ -252,7 +275,7 @@
           <el-table :data="selectedRecord.boxes" border size="small">
             <el-table-column prop="class_name" label="目标类别" />
             <el-table-column prop="chinese_name" label="中文名称" />
-            <el-table-column prop="confidence" label="置信度" formatter="formatConfidence" />
+            <el-table-column prop="confidence" label="置信度" :formatter="(row) => (row.confidence * 100).toFixed(1) + '%'" />
             <el-table-column prop="x1" label="X1" />
             <el-table-column prop="y1" label="Y1" />
             <el-table-column prop="x2" label="X2" />
@@ -300,6 +323,8 @@ import {
   User,
   Message,
   Lock,
+  ArrowDown,
+  Document,
 } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import {
@@ -442,19 +467,184 @@ const viewRecordDetail = async (record) => {
   }
 };
 
-// 下载记录
-const downloadRecord = (record) => {
-  if (record.result_image_url) {
-    const link = document.createElement("a");
-    link.href = record.result_image_url;
-    link.download = `result_${record.filename}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    ElMessage.success("下载开始");
-  } else {
-    ElMessage.warning("暂无可下载的结果文件");
+// 下载命令处理
+const handleDownloadCommand = async (command, record) => {
+  switch (command) {
+    case "original":
+      await downloadOriginalImage(record);
+      break;
+    case "result":
+      await downloadResultImage(record);
+      break;
+    case "report":
+      await downloadReport(record);
+      break;
+    case "all":
+      await downloadAll(record);
+      break;
   }
+};
+
+// 下载原始图片
+const downloadOriginalImage = async (record) => {
+  if (!record.image_url) {
+    ElMessage.warning("暂无可下载的原始图片");
+    return;
+  }
+  try {
+    // 添加 download 参数
+    const downloadUrl = record.image_url.includes('?') 
+      ? `${record.image_url}&download=true` 
+      : `${record.image_url}?download=true`;
+    
+    const response = await fetch(downloadUrl);
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    const blob = await response.blob();
+    downloadBlob(blob, `original_${record.filename}`);
+    ElMessage.success("原始图片下载成功");
+  } catch (error) {
+    console.error("下载原始图片失败:", error);
+    ElMessage.error("下载原始图片失败，请稍后重试");
+  }
+};
+
+// 下载检测结果图片
+const downloadResultImage = async (record) => {
+  if (!record.result_image_url) {
+    ElMessage.warning("暂无可下载的检测结果图片");
+    return;
+  }
+  try {
+    // 添加 download 参数
+    const downloadUrl = record.result_image_url.includes('?') 
+      ? `${record.result_image_url}&download=true` 
+      : `${record.result_image_url}?download=true`;
+    
+    const response = await fetch(downloadUrl);
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    const blob = await response.blob();
+    downloadBlob(blob, `result_${record.filename}`);
+    ElMessage.success("检测结果图片下载成功");
+  } catch (error) {
+    console.error("下载检测结果图片失败:", error);
+    ElMessage.error("下载检测结果图片失败，请稍后重试");
+  }
+};
+
+// 下载检测报告
+const downloadReport = async (record) => {
+  try {
+    const response = await getDetectionDetail(record.id);
+    if (response.success && response.data) {
+      const reportData = buildReportData(response.data);
+      const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: "application/json" });
+      downloadBlob(blob, `report_${record.filename.replace(/\.[^.]+$/, "")}.json`);
+      ElMessage.success("检测报告下载成功");
+    } else {
+      ElMessage.error("获取检测详情失败");
+    }
+  } catch (error) {
+    console.error("下载检测报告失败:", error);
+    ElMessage.error("下载检测报告失败，请稍后重试");
+  }
+};
+
+// 构建报告数据
+const buildReportData = (record) => {
+  return {
+    version: "1.0",
+    generated_at: new Date().toISOString(),
+    detection: {
+      id: record.id,
+      filename: record.filename,
+      image_url: record.image_url,
+      result_image_url: record.result_image_url,
+      status: record.status,
+      confidence: record.confidence,
+      detected_targets: record.detected_targets || [],
+      created_at: record.created_at,
+      completed_at: record.completed_at,
+    },
+  };
+};
+
+// 下载全部
+const downloadAll = async (record) => {
+  let successCount = 0;
+  let errorCount = 0;
+
+  // 下载原始图片
+  if (record.image_url) {
+    try {
+      const downloadUrl = record.image_url.includes('?') 
+        ? `${record.image_url}&download=true` 
+        : `${record.image_url}?download=true`;
+      const response = await fetch(downloadUrl);
+      if (response.ok) {
+        const blob = await response.blob();
+        downloadBlob(blob, `original_${record.filename}`);
+        successCount++;
+      } else {
+        errorCount++;
+      }
+    } catch {
+      errorCount++;
+    }
+  }
+
+  // 下载检测结果图片
+  if (record.result_image_url) {
+    try {
+      const downloadUrl = record.result_image_url.includes('?') 
+        ? `${record.result_image_url}&download=true` 
+        : `${record.result_image_url}?download=true`;
+      const response = await fetch(downloadUrl);
+      if (response.ok) {
+        const blob = await response.blob();
+        downloadBlob(blob, `result_${record.filename}`);
+        successCount++;
+      } else {
+        errorCount++;
+      }
+    } catch {
+      errorCount++;
+    }
+  }
+
+  // 下载检测报告
+  getDetectionDetail(record.id).then((response) => {
+    if (response.success && response.data) {
+      const reportData = buildReportData(response.data);
+      const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `report_${record.filename.replace(/\.[^.]+$/, "")}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      successCount++;
+      ElMessage.success(`全部下载开始，共 ${successCount} 个文件`);
+    }
+  }).catch(() => {
+    ElMessage.warning("下载报告失败");
+  });
+};
+
+// 通用下载函数
+const downloadBlob = (blob, filename) => {
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(link.href);
 };
 
 // 确认删除
